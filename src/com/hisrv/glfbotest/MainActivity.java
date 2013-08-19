@@ -2,19 +2,23 @@ package com.hisrv.glfbotest;
 
 import java.io.IOException;
 
+import com.hisrv.glfbotest.TestRenderer.OnRenderCompleteListener;
+
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.widget.ImageView;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements OnRenderCompleteListener {
 
 	private final static String TAG = "MainActivity";
 	private ImageView mImageView;
 	private GLSurfaceView mGLSurfaceView;
+	private TestRenderer mTestRenderer;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -23,10 +27,12 @@ public class MainActivity extends Activity {
 		mImageView = (ImageView) findViewById(R.id.image);
 		mGLSurfaceView = (GLSurfaceView) findViewById(R.id.glview);
 		mGLSurfaceView.setEGLContextClientVersion(2);
-		mGLSurfaceView.setRenderer(new TestRenderer());
 		try {
 			Bitmap bm = BitmapFactory.decodeStream(getAssets().open("1.jpg"));
-			mImageView.setImageBitmap(bm);
+			mTestRenderer = new TestRenderer(this, bm);
+			mTestRenderer.setOnRenderCompleteListener(this);
+			mGLSurfaceView.setRenderer(mTestRenderer);
+//			mImageView.setImageBitmap(bm);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -53,6 +59,20 @@ public class MainActivity extends Activity {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
+	}
+
+	@Override
+	public void onBitmapComplete(final Bitmap bm) {
+		// TODO Auto-generated method stub
+		runOnUiThread(new Runnable() {
+			
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				mImageView.setImageBitmap(bm);
+				Log.d(TAG, "bitmap set");
+			}
+		});
 	}
 
 }
