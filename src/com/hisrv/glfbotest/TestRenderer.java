@@ -19,7 +19,8 @@ public class TestRenderer implements Renderer {
 	private static final int POS_DATA_SIZE = 2;
 	private static final int BYTES_PER_FLOAT = 4;
 	private int mFrameBufferHandle, mTextureHandle, mProgramHandle,
-			mPositionHandle, mTextureUniformHandle, mMVPMatrixHandle;
+			mPositionHandle, mTextureUniformHandle, mMVPMatrixHandle, 
+			mTexelWidthOffsetHandle, mTexelHeightOffsetHandle;
 	private int mTextureWidth, mTextureHeight;
 	private Context mAppContext;
 	private FloatBuffer mFrameTexPos;
@@ -50,28 +51,15 @@ public class TestRenderer implements Renderer {
 		GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureHandle);
 		GLES20.glUniform1i(mTextureUniformHandle, 0);
-
+		GLES20.glUniform1f(mTexelWidthOffsetHandle, 1f / mTextureWidth);
+		GLES20.glUniform1f(mTexelHeightOffsetHandle, 1f / mTextureHeight);
+		
 		GLES20.glVertexAttribPointer(mPositionHandle, POS_DATA_SIZE,
 				GLES20.GL_FLOAT, false, 0, mFrameTexPos.position(0));
 		GLES20.glEnableVertexAttribArray(mPositionHandle);
-
 		GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
 		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
-
-		if (mOnRenderCompleteListener != null) {
-			GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFrameBufferHandle);
-			IntBuffer buf = IntBuffer.allocate(mTextureWidth * mTextureHeight);
-			GLES20.glReadPixels(0, 0, mTextureWidth, mTextureHeight,
-					GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf.position(0));
-			Bitmap reverseBitmap = Bitmap.createBitmap(mTextureWidth,
-					mTextureHeight, Bitmap.Config.ARGB_8888);
-			reverseBitmap.copyPixelsFromBuffer(buf);
-			android.graphics.Matrix matrix = new android.graphics.Matrix();
-			matrix.postScale(1, -1);
-			Bitmap outputBitmap = Bitmap.createBitmap(reverseBitmap, 0, 0, mTextureWidth, mTextureHeight, matrix, true);
-			mOnRenderCompleteListener.onBitmapComplete(outputBitmap);
-			mOnRenderCompleteListener = null;
-		}
+		outputFrameBuffer();
 		checkGLError();
 	}
 
@@ -87,32 +75,36 @@ public class TestRenderer implements Renderer {
 	@Override
 	public void onSurfaceCreated(GL10 arg0, EGLConfig arg1) {
 		// TODO Auto-generated method stub
+		GLES20.glDisable(GLES20.GL_DEPTH_TEST);
 		initShaders();
 		mTextureHandle = TextureHelper.loadSubTexture(mInputBitmap);
-		initFrameBuffers();
+		mFrameBufferHandle = generateFrameBuffer().frameBufferHandle;
 	}
 
 	private void initShaders() {
-		GLES20.glDisable(GLES20.GL_DEPTH_TEST);
 
 		int vShader = ShaderHelper.compileShader(GLES20.GL_VERTEX_SHADER,
 				RawResourceReader.readTextFileFromRawResource(mAppContext,
-						R.raw.vertex_shader));
+						R.raw.smooth_blur_horizontal_vertex_shader));
 		int fShader = ShaderHelper.compileShader(GLES20.GL_FRAGMENT_SHADER,
 				RawResourceReader.readTextFileFromRawResource(mAppContext,
-						R.raw.original_shader));
+						R.raw.smooth_blur_fragment_shader));
 		mProgramHandle = ShaderHelper.createAndLinkProgram(vShader, fShader,
 				new String[] { "aPosition" });
 		mPositionHandle = GLES20.glGetAttribLocation(mProgramHandle,
-				"aPosition");
+				"position");
 		mTextureUniformHandle = GLES20.glGetUniformLocation(mProgramHandle,
-				"uTexture");
+				"inputImageTexture");
 		mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgramHandle,
 				"uMVPMatrix");
+		mTexelWidthOffsetHandle = GLES20.glGetUniformLocation(mProgramHandle,
+				"texelWidthOffset");
+		mTexelHeightOffsetHandle = GLES20.glGetUniformLocation(mProgramHandle,
+				"texelHeightOffset");
 
 	}
 
-	private void initFrameBuffers() {
+	private FrameBufferInfo generateFrameBuffer() {
 		int[] textures = new int[1];
 		GLES20.glGenTextures(1, textures, 0);
 		int frameBufferTexture = textures[0];
@@ -128,8 +120,8 @@ public class TestRenderer implements Renderer {
 
 		int[] frameBuffers = new int[1];
 		GLES20.glGenFramebuffers(1, frameBuffers, 0);
-		mFrameBufferHandle = frameBuffers[0];
-		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFrameBufferHandle);
+		int frameBufferHandle = frameBuffers[0];
+		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBufferHandle);
 		GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER,
 				GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D,
 				frameBufferTexture, 0);
@@ -137,6 +129,7 @@ public class TestRenderer implements Renderer {
 		if (status != GLES20.GL_FRAMEBUFFER_COMPLETE) {
 			throw new RuntimeException("frame buffer incompleted " + status);
 		}
+		return new FrameBufferInfo(frameBufferHandle, frameBufferTexture);
 	}
 
 	private void checkGLError() {
@@ -171,6 +164,23 @@ public class TestRenderer implements Renderer {
 		Matrix.multiplyMM(mMVPMatrix, 0, projectionMatrix, 0, modelViewMatrix,
 				0);
 	}
+	
+	private void outputFrameBuffer() {
+		if (mOnRenderCompleteListener != null) {
+			IntBuffer buf = IntBuffer.allocate(mTextureWidth * mTextureHeight);
+			GLES20.glReadPixels(0, 0, mTextureWidth, mTextureHeight,
+					GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf.position(0));
+			Bitmap reverseBitmap = Bitmap.createBitmap(mTextureWidth,
+					mTextureHeight, Bitmap.Config.ARGB_8888);
+			reverseBitmap.copyPixelsFromBuffer(buf);
+			android.graphics.Matrix matrix = new android.graphics.Matrix();
+			matrix.postScale(1, -1);
+			Bitmap outputBitmap = Bitmap.createBitmap(reverseBitmap, 0, 0, mTextureWidth, mTextureHeight, matrix, true);
+			mOnRenderCompleteListener.onBitmapComplete(outputBitmap);
+			mOnRenderCompleteListener = null;
+		}
+
+	}
 
 	public void setOnRenderCompleteListener(OnRenderCompleteListener l) {
 		mOnRenderCompleteListener = l;
@@ -178,5 +188,15 @@ public class TestRenderer implements Renderer {
 
 	public interface OnRenderCompleteListener {
 		public void onBitmapComplete(Bitmap bm);
+	}
+	
+	public static class FrameBufferInfo {
+		public int frameBufferHandle;
+		public int textureHandle;
+		
+		public FrameBufferInfo(int frameBuffer, int texture) {
+			frameBufferHandle = frameBuffer;
+			textureHandle = texture;
+		}
 	}
 }
