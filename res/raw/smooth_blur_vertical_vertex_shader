@@ -1,0 +1,30 @@
+ attribute vec4 position;
+ attribute vec2 inputTextureCoordinate;
+ 
+ uniform float texelWidthOffset;
+ uniform float texelHeightOffset;
+ 
+ varying vec2 centerTextureCoordinate;
+ varying vec2 oneStepLeftTextureCoordinate;
+ varying vec2 twoStepsLeftTextureCoordinate;
+ varying vec2 threeStepsLeftTextureCoordinate;
+ varying vec2 oneStepRightTextureCoordinate;
+ varying vec2 twoStepsRightTextureCoordinate;
+ varying vec2 threeStepsRightTextureCoordinate;
+ 
+ void main()
+ {
+     gl_Position = position;
+     
+     vec2 firstOffset = vec2(0, 1.5 * texelHeightOffset);
+     vec2 secondOffset = vec2(0, 3.5 * texelHeightOffset);
+     vec2 thirdOffset = vec2(0, 5.5 * texelHeightOffset);
+     
+     centerTextureCoordinate = inputTextureCoordinate;
+     oneStepLeftTextureCoordinate = inputTextureCoordinate - firstOffset;
+     twoStepsLeftTextureCoordinate = inputTextureCoordinate - secondOffset;
+     threeStepsLeftTextureCoordinate = inputTextureCoordinate - thirdOffset;
+     oneStepRightTextureCoordinate = inputTextureCoordinate + firstOffset;
+     twoStepsRightTextureCoordinate = inputTextureCoordinate + secondOffset;
+     threeStepsRightTextureCoordinate = inputTextureCoordinate + thirdOffset;
+ }
