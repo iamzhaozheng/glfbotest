@@ -32,7 +32,7 @@ public class MainActivity extends Activity implements OnRenderCompleteListener {
 		mGLSurfaceView = (GLSurfaceView) findViewById(R.id.glview);
 		mGLSurfaceView.setEGLContextClientVersion(2);
 		try {
-			Bitmap bm = BitmapFactory.decodeStream(getAssets().open("1.jpg"));
+			Bitmap bm = BitmapFactory.decodeStream(getAssets().open("1280.jpg"));
 			mTestRenderer = new TestRenderer(this, bm);
 			mTestRenderer.setOnRenderCompleteListener(this);
 			mGLSurfaceView.setRenderer(mTestRenderer);

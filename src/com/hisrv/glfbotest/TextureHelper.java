@@ -7,23 +7,27 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 
 public class TextureHelper {
 	public static int loadTexture(final Context context, final int resourceId) {
+		final BitmapFactory.Options options = new BitmapFactory.Options();
+		options.inScaled = false; // No pre-scaling
+		// Read in the resource
+		final Bitmap bitmap = BitmapFactory.decodeResource(
+				context.getResources(), resourceId, options);
+
+		return loadTexture(bitmap);
+	}
+	
+	public static int loadTexture(Bitmap bitmap) {
 		final int[] textureHandle = new int[1];
 
 		GLES20.glGenTextures(1, textureHandle, 0);
 
 		if (textureHandle[0] != 0) {
-			final BitmapFactory.Options options = new BitmapFactory.Options();
-			options.inScaled = false; // No pre-scaling
-
-			// Read in the resource
-			final Bitmap bitmap = BitmapFactory.decodeResource(
-					context.getResources(), resourceId, options);
-
 			// Bind to the texture in OpenGL
 			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle[0]);
 
@@ -110,5 +114,13 @@ public class TextureHelper {
 
 		return textureHandle[0];
 	}
-
+	
+	public static int loadCurveTexture(Context cx, String assetName) {
+		Curve curve = new Curve(cx, assetName);
+		Bitmap bm = Bitmap.createBitmap(256, 1, Bitmap.Config.ARGB_8888);
+		for (int i = 0; i < 256; i ++) {
+			bm.setPixel(i, 0, Color.argb(255, curve.getCurveRed()[i], curve.getCurveGreen()[i], curve.getCurveBlue()[i]));
+		}
+		return loadTexture(bm);
+	}
 }

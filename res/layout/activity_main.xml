@@ -10,11 +10,12 @@
 
     <com.hisrv.glfbotest.GLView
         android:id="@+id/glview"
-        android:layout_width="1dp"
-        android:layout_height="1dp" />
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
     <ImageView
         android:id="@+id/image"
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 

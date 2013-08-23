@@ -1,6 +1,7 @@
  attribute vec4 position;
- attribute vec2 inputTextureCoordinate;
+ //attribute vec2 inputTextureCoordinate;
  
+ uniform mat4 uMVPMatrix;
  uniform float texelWidthOffset;
  uniform float texelHeightOffset;
  
@@ -14,8 +15,8 @@
  
  void main()
  {
-     gl_Position = position;
-     
+     gl_Position = uMVPMatrix * position;
+     vec2 inputTextureCoordinate = position.xy;    
      vec2 firstOffset = vec2(0, 1.5 * texelHeightOffset);
      vec2 secondOffset = vec2(0, 3.5 * texelHeightOffset);
      vec2 thirdOffset = vec2(0, 5.5 * texelHeightOffset);

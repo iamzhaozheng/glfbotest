@@ -1,19 +1,18 @@
  precision highp float;
  
- uniform sampler2D inputImageTexture;
- uniform sampler2D inputImageTexture2;
- uniform sampler2D curveTexture;
+ uniform sampler2D uTexture;
+ uniform sampler2D uTextureTemplate;
+ uniform sampler2D uTextureCurve;
  
- varying highp vec2 textureCoordinate;
- varying highp vec2 textureCoordinate2;
+ varying highp vec4 vPosition;
  
  void main()
  {
-     lowp vec4 textureColor = texture2D(inputImageTexture, textureCoordinate);
-     lowp float t = texture2D(inputImageTexture2, textureCoordinate2).g;
-     lowp float r = texture2D(curveTexture, vec2(textureColor.r, 0.0)).r;
-     lowp float g = texture2D(curveTexture, vec2(textureColor.g, 0.0)).g;
-     lowp float b = texture2D(curveTexture, vec2(textureColor.b, 0.0)).b;
+     lowp vec4 textureColor = texture2D(uTexture, vPosition.xy);
+     lowp float t = texture2D(uTextureTemplate, vPosition.xy).g;
+     lowp float r = texture2D(uTextureCurve, vec2(textureColor.r, 0.0)).r;
+     lowp float g = texture2D(uTextureCurve, vec2(textureColor.g, 0.0)).g;
+     lowp float b = texture2D(uTextureCurve, vec2(textureColor.b, 0.0)).b;
      lowp vec3 result = textureColor.rgb * t + vec3(r,g,b) * (1.0 - t);
      
      gl_FragColor = vec4(result,1.0);

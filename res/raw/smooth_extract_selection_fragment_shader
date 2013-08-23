@@ -1,13 +1,12 @@
  precision highp float;
  
- uniform sampler2D inputImageTexture;
- uniform sampler2D inputImageTexture2;
+ uniform sampler2D uTexture;
+ uniform sampler2D uTextureBlur;
  
- varying vec2 textureCoordinate;
- varying vec2 textureCoordinate2;
+ varying vec4 vPosition;
  
  void main()
  {
-     lowp float fragmentColor = (texture2D(inputImageTexture, textureCoordinate).g - texture2D(inputImageTexture2, textureCoordinate2).g)*0.5 + 0.5;
+     lowp float fragmentColor = (texture2D(uTexture, vPosition.xy).g - texture2D(uTextureBlur, vPosition.xy).g)*0.5 + 0.5;
      gl_FragColor = vec4(0.0, fragmentColor , 0.0 ,1.0);
  }
