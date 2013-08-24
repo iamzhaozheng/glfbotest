@@ -25,9 +25,9 @@ public class TestRenderer implements Renderer {
 	private ShaderInfo mOriginalShader, mSmoothBlurHorizontalShader,
 			mSmoothBlurVerticalShader, mSmoothExtractionShader,
 			mSmoothTemplateShader, mSmoothApplyShader;
-	private int mTextureWidth, mTextureHeight, mSurfaceWidth, mSurfaceHeight;
+	private int mTextureWidth, mTextureHeight, mSurfaceWidth, mSurfaceHeight, mDisplayedTextureWidth, mDisplayedTextureHeight;
 	private Context mAppContext;
-	private FloatBuffer mFrameTexPos;
+	private FloatBuffer mFrameTexPos, mDisplayedTexPos;
 	private float[] mMVPMatrix = new float[16];
 	private float[] mFixMVPMatrix = new float[16];
 	private Bitmap mInputBitmap;
@@ -38,17 +38,25 @@ public class TestRenderer implements Renderer {
 		mInputBitmap = bm;
 		mTextureWidth = bm.getWidth();
 		mTextureHeight = bm.getHeight();
-		float wr = 1.0f * mTextureWidth
-				/ MathUtils.nextPowerOfTwo(mTextureWidth);
-		float hr = 1.0f * mTextureHeight
-				/ MathUtils.nextPowerOfTwo(mTextureHeight);
+		mDisplayedTextureWidth = mTextureHeight;
+		mDisplayedTextureHeight = mTextureWidth;
+		mFrameTexPos = getTextureCoordinate(mTextureWidth, mTextureHeight);
+		mDisplayedTexPos = getTextureCoordinate(mDisplayedTextureWidth, mDisplayedTextureHeight);
+		initMVPMatrix();
+	}
+	
+	private FloatBuffer getTextureCoordinate(int w, int h) {
+		float wr = 1.0f * w
+				/ MathUtils.nextPowerOfTwo(w);
+		float hr = 1.0f * h
+				/ MathUtils.nextPowerOfTwo(h);
 		float[] frameTexCoords = new float[] { 0, 0, wr, 0, 0, hr, wr, 0, wr,
 				hr, 0, hr };
-		mFrameTexPos = ByteBuffer
+		FloatBuffer frameTexPos = ByteBuffer
 				.allocateDirect(frameTexCoords.length * BYTES_PER_FLOAT)
 				.order(ByteOrder.nativeOrder()).asFloatBuffer();
-		mFrameTexPos.put(frameTexCoords).position(0);
-		initMVPMatrix();
+		frameTexPos.put(frameTexCoords).position(0);
+		return frameTexPos;
 	}
 
 	@Override
@@ -56,25 +64,25 @@ public class TestRenderer implements Renderer {
 		// TODO Auto-generated method stub
 		checkGLError();
 		GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-		drawOriginal(mMVPMatrix, mOriginalShader, mFrameBufferOriginal,
+		drawOriginal(mOriginalShader, mFrameBufferOriginal,
 				mTextureHandle);
-		drawSmoothBlur(mFixMVPMatrix, mSmoothBlurHorizontalShader, mFrameBufferA,
+		drawSmoothBlur(mSmoothBlurHorizontalShader, mFrameBufferA,
 				mFrameBufferOriginal.textureHandle);
-		drawSmoothBlur(mFixMVPMatrix, mSmoothBlurVerticalShader, mFrameBufferB,
+		drawSmoothBlur(mSmoothBlurVerticalShader, mFrameBufferB,
 				mFrameBufferA.textureHandle);
-		drawSmoothBlur(mFixMVPMatrix, mSmoothBlurHorizontalShader, mFrameBufferA,
+		drawSmoothBlur(mSmoothBlurHorizontalShader, mFrameBufferA,
 				mFrameBufferB.textureHandle);
-		drawSmoothBlur(mFixMVPMatrix, mSmoothBlurVerticalShader, mFrameBufferB,
+		drawSmoothBlur(mSmoothBlurVerticalShader, mFrameBufferB,
 				mFrameBufferA.textureHandle);
-		drawSmoothBlur(mFixMVPMatrix, mSmoothBlurHorizontalShader, mFrameBufferA,
+		drawSmoothBlur(mSmoothBlurHorizontalShader, mFrameBufferA,
 				mFrameBufferB.textureHandle);
-		drawSmoothBlur(mFixMVPMatrix, mSmoothBlurVerticalShader, mFrameBufferB,
+		drawSmoothBlur(mSmoothBlurVerticalShader, mFrameBufferB,
 				mFrameBufferA.textureHandle);
-		drawExtraction(mFixMVPMatrix, mSmoothExtractionShader, mFrameBufferA,
+		drawExtraction(mSmoothExtractionShader, mFrameBufferA,
 				mFrameBufferOriginal.textureHandle, mFrameBufferB.textureHandle);
-		drawTemplate(mFixMVPMatrix, mSmoothTemplateShader, mFrameBufferB,
+		drawTemplate(mSmoothTemplateShader, mFrameBufferB,
 				mFrameBufferA.textureHandle, mTextureHighlightCurveHandle);
-		drawSmoothApply(mFixMVPMatrix, mSmoothApplyShader, null,
+		drawSmoothApply(mSmoothApplyShader, null,
 				mFrameBufferOriginal.textureHandle,
 				mFrameBufferB.textureHandle, mTextureCurveHandle);
 		outputFrameBuffer();
@@ -126,21 +134,9 @@ public class TestRenderer implements Renderer {
 	}
 
 	private void initMVPMatrix() {
-		final float eyeX = 0.0f;
-		final float eyeY = 0.0f;
-		final float eyeZ = 1.0f;
-
-		final float lookX = 0.0f;
-		final float lookY = 0.0f;
-		final float lookZ = 0.0f;
-
-		final float upX = -1.0f;
-		final float upY = 0.0f;
-		final float upZ = 0.0f;
-
 		float[] modelViewMatrix = new float[16];
-		Matrix.setLookAtM(modelViewMatrix, 0, eyeX, eyeY, eyeZ, lookX, lookY,
-				lookZ, upX, upY, upZ);
+		Matrix.setLookAtM(modelViewMatrix, 0, 0, 0, 1, 0, 0,
+				0, -1, 0, 0);
 		float[] projectionMatrix = new float[16];
 		float hr = (float) mTextureHeight
 				/ MathUtils.nextPowerOfTwo(mTextureHeight);
@@ -149,9 +145,16 @@ public class TestRenderer implements Renderer {
 		Matrix.orthoM(projectionMatrix, 0, 0, hr, -wr, 0, 1, -1);
 		Matrix.multiplyMM(mMVPMatrix, 0, projectionMatrix, 0, modelViewMatrix,
 				0);
-		Matrix.setLookAtM(modelViewMatrix, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
-		Matrix.orthoM(projectionMatrix, 0, 0, wr, 0, hr, 1, -1);
-		Matrix.multiplyMM(mFixMVPMatrix, 0, projectionMatrix, 0, modelViewMatrix,
+		
+		hr = (float) mDisplayedTextureHeight
+				/ MathUtils.nextPowerOfTwo(mDisplayedTextureHeight);
+		wr = (float) mDisplayedTextureWidth
+				/ MathUtils.nextPowerOfTwo(mDisplayedTextureWidth);
+		float[] fixModelViewMatrix = new float[16];
+		Matrix.setLookAtM(fixModelViewMatrix, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
+		float[] fixProjectionMatrix = new float[16];
+		Matrix.orthoM(fixProjectionMatrix, 0, 0, wr, 0, hr, 1, -1);
+		Matrix.multiplyMM(mFixMVPMatrix, 0, fixProjectionMatrix, 0, fixModelViewMatrix,
 				0);
 	}
 
@@ -186,8 +189,8 @@ public class TestRenderer implements Renderer {
 		GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
 				GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
 		GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA,
-				MathUtils.nextPowerOfTwo(mTextureWidth),
-				MathUtils.nextPowerOfTwo(mTextureHeight), 0, GLES20.GL_RGBA,
+				MathUtils.nextPowerOfTwo(mDisplayedTextureWidth),
+				MathUtils.nextPowerOfTwo(mDisplayedTextureHeight), 0, GLES20.GL_RGBA,
 				GLES20.GL_UNSIGNED_BYTE, null);
 
 		int[] frameBuffers = new int[1];
@@ -204,11 +207,11 @@ public class TestRenderer implements Renderer {
 		return new FrameBufferInfo(frameBufferHandle, frameBufferTexture);
 	}
 
-	private void drawOriginal(float[] matrix, ShaderInfo shader,
+	private void drawOriginal(ShaderInfo shader,
 			FrameBufferInfo fbi, int textureHandle) {
 		GLES20.glUseProgram(shader.program);
-		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mTextureWidth,
-				fbi == null ? mSurfaceHeight : mTextureHeight);
+		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mDisplayedTextureWidth,
+				fbi == null ? mSurfaceHeight : mDisplayedTextureHeight);
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbi == null ? 0
 				: fbi.frameBufferHandle);
 		GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -219,38 +222,38 @@ public class TestRenderer implements Renderer {
 				GLES20.GL_FLOAT, false, 0, mFrameTexPos.position(0));
 		GLES20.glEnableVertexAttribArray(shader.attribute);
 		GLES20.glUniformMatrix4fv(shader.uniforms.get("uMVPMatrix"), 1, false,
-				matrix, 0);
+				mMVPMatrix, 0);
 		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 	}
 
-	private void drawSmoothBlur(float[] matrix, ShaderInfo shader,
+	private void drawSmoothBlur(ShaderInfo shader,
 			FrameBufferInfo fbi, int textureHandle) {
 		GLES20.glUseProgram(shader.program);
-		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mTextureWidth,
-				fbi == null ? mSurfaceHeight : mTextureHeight);
+		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mDisplayedTextureWidth,
+				fbi == null ? mSurfaceHeight : mDisplayedTextureHeight);
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbi == null ? 0
 				: fbi.frameBufferHandle);
 		GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle);
 		GLES20.glUniform1i(shader.uniforms.get("inputImageTexture"), 0);
 		GLES20.glUniform1f(shader.uniforms.get("texelWidthOffset"),
-				1f / mTextureWidth);
+				1f / mDisplayedTextureWidth);
 		GLES20.glUniform1f(shader.uniforms.get("texelHeightOffset"),
-				1f / mTextureHeight);
+				1f / mDisplayedTextureHeight);
 
 		GLES20.glVertexAttribPointer(shader.attribute, POS_DATA_SIZE,
-				GLES20.GL_FLOAT, false, 0, mFrameTexPos.position(0));
+				GLES20.GL_FLOAT, false, 0, mDisplayedTexPos.position(0));
 		GLES20.glEnableVertexAttribArray(shader.attribute);
 		GLES20.glUniformMatrix4fv(shader.uniforms.get("uMVPMatrix"), 1, false,
-				matrix, 0);
+				mFixMVPMatrix, 0);
 		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 	}
 
-	private void drawExtraction(float[] matrix, ShaderInfo shader,
+	private void drawExtraction(ShaderInfo shader,
 			FrameBufferInfo fbi, int textureHandle, int textureBlurHandle) {
 		GLES20.glUseProgram(shader.program);
-		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mTextureWidth,
-				fbi == null ? mSurfaceHeight : mTextureHeight);
+		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mDisplayedTextureWidth,
+				fbi == null ? mSurfaceHeight : mDisplayedTextureHeight);
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbi == null ? 0
 				: fbi.frameBufferHandle);
 		GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -260,18 +263,18 @@ public class TestRenderer implements Renderer {
 		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureBlurHandle);
 		GLES20.glUniform1i(shader.uniforms.get("uTextureBlur"), 1);
 		GLES20.glVertexAttribPointer(shader.attribute, POS_DATA_SIZE,
-				GLES20.GL_FLOAT, false, 0, mFrameTexPos.position(0));
+				GLES20.GL_FLOAT, false, 0, mDisplayedTexPos.position(0));
 		GLES20.glEnableVertexAttribArray(shader.attribute);
 		GLES20.glUniformMatrix4fv(shader.uniforms.get("uMVPMatrix"), 1, false,
-				matrix, 0);
+				mFixMVPMatrix, 0);
 		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 	}
 
-	private void drawTemplate(float[] matrix, ShaderInfo shader,
+	private void drawTemplate(ShaderInfo shader,
 			FrameBufferInfo fbi, int textureHandle, int textureCurveHandle) {
 		GLES20.glUseProgram(shader.program);
-		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mTextureWidth,
-				fbi == null ? mSurfaceHeight : mTextureHeight);
+		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mDisplayedTextureWidth,
+				fbi == null ? mSurfaceHeight : mDisplayedTextureHeight);
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbi == null ? 0
 				: fbi.frameBufferHandle);
 		GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -281,19 +284,19 @@ public class TestRenderer implements Renderer {
 		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureCurveHandle);
 		GLES20.glUniform1i(shader.uniforms.get("uTextureCurve"), 1);
 		GLES20.glVertexAttribPointer(shader.attribute, POS_DATA_SIZE,
-				GLES20.GL_FLOAT, false, 0, mFrameTexPos.position(0));
+				GLES20.GL_FLOAT, false, 0, mDisplayedTexPos.position(0));
 		GLES20.glEnableVertexAttribArray(shader.attribute);
 		GLES20.glUniformMatrix4fv(shader.uniforms.get("uMVPMatrix"), 1, false,
-				matrix, 0);
+				mFixMVPMatrix, 0);
 		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 	}
 
-	private void drawSmoothApply(float[] matrix, ShaderInfo shader,
+	private void drawSmoothApply(ShaderInfo shader,
 			FrameBufferInfo fbi, int textureHandle, int textureTemplateHandle,
 			int textureCurveHandle) {
 		GLES20.glUseProgram(shader.program);
-		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mTextureWidth,
-				fbi == null ? mSurfaceHeight : mTextureHeight);
+		GLES20.glViewport(0, 0, fbi == null ? mSurfaceWidth : mDisplayedTextureWidth,
+				fbi == null ? mSurfaceHeight : mDisplayedTextureHeight);
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbi == null ? 0
 				: fbi.frameBufferHandle);
 		GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -306,10 +309,10 @@ public class TestRenderer implements Renderer {
 		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureCurveHandle);
 		GLES20.glUniform1i(shader.uniforms.get("uTextureCurve"), 2);
 		GLES20.glVertexAttribPointer(shader.attribute, POS_DATA_SIZE,
-				GLES20.GL_FLOAT, false, 0, mFrameTexPos.position(0));
+				GLES20.GL_FLOAT, false, 0, mDisplayedTexPos.position(0));
 		GLES20.glEnableVertexAttribArray(shader.attribute);
 		GLES20.glUniformMatrix4fv(shader.uniforms.get("uMVPMatrix"), 1, false,
-				matrix, 0);
+				mFixMVPMatrix, 0);
 		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 	}
 
@@ -322,16 +325,16 @@ public class TestRenderer implements Renderer {
 
 	private void outputFrameBuffer() {
 		if (mOnRenderCompleteListener != null) {
-			IntBuffer buf = IntBuffer.allocate(mTextureWidth * mTextureHeight);
-			GLES20.glReadPixels(0, 0, mTextureWidth, mTextureHeight,
+			IntBuffer buf = IntBuffer.allocate(mDisplayedTextureWidth * mDisplayedTextureHeight);
+			GLES20.glReadPixels(0, 0, mDisplayedTextureWidth, mDisplayedTextureHeight,
 					GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf.position(0));
-			Bitmap reverseBitmap = Bitmap.createBitmap(mTextureWidth,
-					mTextureHeight, Bitmap.Config.ARGB_8888);
+			Bitmap reverseBitmap = Bitmap.createBitmap(mDisplayedTextureWidth,
+					mDisplayedTextureHeight, Bitmap.Config.ARGB_8888);
 			reverseBitmap.copyPixelsFromBuffer(buf);
 			android.graphics.Matrix matrix = new android.graphics.Matrix();
 			matrix.postScale(1, -1);
 			Bitmap outputBitmap = Bitmap.createBitmap(reverseBitmap, 0, 0,
-					mTextureWidth, mTextureHeight, matrix, true);
+					mDisplayedTextureWidth, mDisplayedTextureHeight, matrix, true);
 			mOnRenderCompleteListener.onBitmapComplete(outputBitmap);
 			mOnRenderCompleteListener = null;
 		}
