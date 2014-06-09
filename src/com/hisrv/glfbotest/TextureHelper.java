@@ -21,7 +21,7 @@ public class TextureHelper {
 
 		return loadTexture(bitmap);
 	}
-	
+
 	public static int loadTexture(Bitmap bitmap) {
 		final int[] textureHandle = new int[1];
 
@@ -33,9 +33,13 @@ public class TextureHelper {
 
 			// Set filtering
 			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-					GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+					GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
 			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-					GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+					GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
+					GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
+					GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
 
 			// Load the bitmap into the bound texture.
 			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
@@ -89,9 +93,13 @@ public class TextureHelper {
 
 			// Set filtering
 			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-					GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+					GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
 			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-					GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+					GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
+					GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
+					GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
 
 			int w = bitmap.getWidth();
 			int h = bitmap.getHeight();
@@ -114,12 +122,16 @@ public class TextureHelper {
 
 		return textureHandle[0];
 	}
-	
+
 	public static int loadCurveTexture(Context cx, String assetName) {
 		Curve curve = new Curve(cx, assetName);
 		Bitmap bm = Bitmap.createBitmap(256, 1, Bitmap.Config.ARGB_8888);
-		for (int i = 0; i < 256; i ++) {
-			bm.setPixel(i, 0, Color.argb(255, curve.getCurveRed()[i], curve.getCurveGreen()[i], curve.getCurveBlue()[i]));
+		for (int i = 0; i < 256; i++) {
+			bm.setPixel(
+					i,
+					0,
+					Color.argb(255, curve.getCurveRed()[i],
+							curve.getCurveGreen()[i], curve.getCurveBlue()[i]));
 		}
 		return loadTexture(bm);
 	}

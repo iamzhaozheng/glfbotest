@@ -70,14 +70,14 @@ public class TestRenderer implements Renderer {
 				mFrameBufferOriginal.textureHandle);
 		drawSmoothBlur(mSmoothBlurVerticalShader, mFrameBufferB,
 				mFrameBufferA.textureHandle);
-		drawSmoothBlur(mSmoothBlurHorizontalShader, mFrameBufferA,
-				mFrameBufferB.textureHandle);
-		drawSmoothBlur(mSmoothBlurVerticalShader, mFrameBufferB,
-				mFrameBufferA.textureHandle);
-		drawSmoothBlur(mSmoothBlurHorizontalShader, mFrameBufferA,
-				mFrameBufferB.textureHandle);
-		drawSmoothBlur(mSmoothBlurVerticalShader, mFrameBufferB,
-				mFrameBufferA.textureHandle);
+//		drawSmoothBlur(mSmoothBlurHorizontalShader, mFrameBufferA,
+//				mFrameBufferB.textureHandle);
+//		drawSmoothBlur(mSmoothBlurVerticalShader, mFrameBufferB,
+//				mFrameBufferA.textureHandle);
+//		drawSmoothBlur(mSmoothBlurHorizontalShader, mFrameBufferA,
+//				mFrameBufferB.textureHandle);
+//		drawSmoothBlur(mSmoothBlurVerticalShader, mFrameBufferB,
+//				mFrameBufferA.textureHandle);
 		drawExtraction(mSmoothExtractionShader, mFrameBufferA,
 				mFrameBufferOriginal.textureHandle, mFrameBufferB.textureHandle);
 		drawTemplate(mSmoothTemplateShader, mFrameBufferB,
@@ -136,13 +136,13 @@ public class TestRenderer implements Renderer {
 	private void initMVPMatrix() {
 		float[] modelViewMatrix = new float[16];
 		Matrix.setLookAtM(modelViewMatrix, 0, 0, 0, 1, 0, 0,
-				0, -1, 0, 0);
+				0, 1, 0, 0);
 		float[] projectionMatrix = new float[16];
 		float hr = (float) mTextureHeight
 				/ MathUtils.nextPowerOfTwo(mTextureHeight);
 		float wr = (float) mTextureWidth
 				/ MathUtils.nextPowerOfTwo(mTextureWidth);
-		Matrix.orthoM(projectionMatrix, 0, 0, hr, -wr, 0, 1, -1);
+		Matrix.orthoM(projectionMatrix, 0, -hr, 0, 0, wr, -1, 1);
 		Matrix.multiplyMM(mMVPMatrix, 0, projectionMatrix, 0, modelViewMatrix,
 				0);
 		
